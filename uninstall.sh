@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# uninstall.sh — remove git-auto-pull (macOS).
+# uninstall.sh — remove git-autopull (macOS).
 #
-#   curl -fsSL https://raw.githubusercontent.com/honzasusek/git-auto-pull/main/uninstall.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/honzasusek/git-autopull/main/uninstall.sh | bash
 #
 # Best-effort and safe to run even on a partial install (no `set -e`).
 set -uo pipefail
 
-TOOL="git-auto-pull"
+TOOL="git-autopull"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 PLIST="$HOME/Library/LaunchAgents/com.gitautopull.daemon.plist"
 
@@ -27,18 +27,18 @@ else
     info "$TOOL not found — cleaning up any leftover daemon/config directly"
     launchctl unload -w "$PLIST" 2>/dev/null || true
     rm -f "$PLIST"
-    rm -rf "$HOME/.config/git-auto-pull"
+    rm -rf "$HOME/.config/git-autopull"
 fi
 
 # Remove the PATH block the installer added, from any common profile.
 for profile in "$HOME/.zprofile" "$HOME/.bash_profile" "$HOME/.profile"; do
     [ -f "$profile" ] || continue
-    if grep -q '# >>> git-auto-pull >>>' "$profile" 2>/dev/null; then
+    if grep -q '# >>> git-autopull >>>' "$profile" 2>/dev/null; then
         tmp="$(mktemp)"
-        sed '/# >>> git-auto-pull >>>/,/# <<< git-auto-pull <<</d' "$profile" >"$tmp" \
+        sed '/# >>> git-autopull >>>/,/# <<< git-autopull <<</d' "$profile" >"$tmp" \
             && mv "$tmp" "$profile" \
             && info "Removed PATH entry from $profile"
     fi
 done
 
-info "Done — git-auto-pull removed. Open a new Terminal to refresh your PATH."
+info "Done — git-autopull removed. Open a new Terminal to refresh your PATH."

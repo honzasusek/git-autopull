@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# install.sh — one-line installer for git-auto-pull (macOS only).
+# install.sh — one-line installer for git-autopull (macOS only).
 #
 # End users run:
-#   curl -fsSL https://raw.githubusercontent.com/honzasusek/git-auto-pull/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/honzasusek/git-autopull/main/install.sh | bash
 #
 # Re-running is safe: it upgrades the script in place and restarts the daemon if
 # one was already running. Override the install location (default ~/.local/bin):
@@ -13,12 +13,12 @@ set -euo pipefail
 
 # ---- EDIT THESE for your public repo ----------------------------------------
 GITHUB_OWNER="honzasusek"          # your GitHub username or org
-GITHUB_REPO="git-auto-pull"        # the public repo name
+GITHUB_REPO="git-autopull"        # the public repo name
 GITHUB_REF="main"                  # branch or tag to install from
-SCRIPT_FILE="git-auto-pull.sh"     # the tool's filename as committed in the repo
+SCRIPT_FILE="git-autopull.sh"     # the tool's filename as committed in the repo
 
 # ---- derived / overridable --------------------------------------------------
-TOOL="git-auto-pull"                                   # installed command name (no extension)
+TOOL="git-autopull"                                   # installed command name (no extension)
 RAW_BASE="https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_REF}"
 SCRIPT_URL="${SCRIPT_URL:-${RAW_BASE}/${SCRIPT_FILE}}" # env-overridable (handy for testing)
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
@@ -31,10 +31,10 @@ warn() { printf '\033[1;33mwarning:\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
 # ---- 1. platform ------------------------------------------------------------
-[ "$(uname -s)" = "Darwin" ] || die "git-auto-pull only runs on macOS (it uses launchd)."
+[ "$(uname -s)" = "Darwin" ] || die "git-autopull only runs on macOS (it uses launchd)."
 
 # ---- 2. git prerequisite ----------------------------------------------------
-# git-auto-pull is a git subcommand and shells out to git. On a fresh Mac git
+# git-autopull is a git subcommand and shells out to git. On a fresh Mac git
 # arrives with Apple's Command Line Tools, so trigger that installer if missing.
 if ! command -v git >/dev/null 2>&1; then
     warn "git isn't installed. Launching Apple's Command Line Tools installer..."
@@ -66,7 +66,7 @@ fi
 chmod 0755 "$DEST"
 
 # ---- 5. PATH ----------------------------------------------------------------
-# ~/.local/bin isn't on macOS's default PATH, so 'git auto-pull' wouldn't resolve
+# ~/.local/bin isn't on macOS's default PATH, so 'git autopull' wouldn't resolve
 # until we add it. We append a clearly-marked block (uninstall.sh removes it).
 PATH_NEEDS_RELOAD=0
 PATH_PROFILE=""
@@ -78,11 +78,11 @@ ensure_on_path() {
         bash) profile="$HOME/.bash_profile" ;;
         *)    profile="$HOME/.profile" ;;
     esac
-    if ! grep -q '# >>> git-auto-pull >>>' "$profile" 2>/dev/null; then
+    if ! grep -q '# >>> git-autopull >>>' "$profile" 2>/dev/null; then
         {
-            printf '\n# >>> git-auto-pull >>>\n'
+            printf '\n# >>> git-autopull >>>\n'
             printf 'export PATH="%s:$PATH"\n' "$INSTALL_DIR"
-            printf '# <<< git-auto-pull <<<\n'
+            printf '# <<< git-autopull <<<\n'
         } >>"$profile"
         info "Added $INSTALL_DIR to PATH in $profile"
     fi
@@ -104,24 +104,24 @@ fi
 
 # ---- 7. done ----------------------------------------------------------------
 printf '\n'
-info "Installed git-auto-pull → $DEST"
+info "Installed git-autopull → $DEST"
 "$DEST" --help | sed 's/^/    /' || true
 printf '\n'
 
 if [ "$PATH_NEEDS_RELOAD" = "1" ]; then
     printf 'Almost done — open a NEW Terminal window (or run:  source "%s")\n' "$PATH_PROFILE"
-    printf 'so the "git auto-pull" command is picked up.\n\n'
+    printf 'so the "git autopull" command is picked up.\n\n'
 fi
 
 cat <<'EOF'
 Next steps:
   1. In Terminal, go into a repo you have already cloned:
        cd /path/to/your/repo
-  2. Start auto-pulling a branch:
-       git auto-pull add main
+  2. Start autopulling a branch:
+       git autopull add main
   3. Confirm it's working:
-       git auto-pull list
-       git auto-pull log
+       git autopull list
+       git autopull log
 
-To remove it later:  git auto-pull uninstall    (or run uninstall.sh)
+To remove it later:  git autopull uninstall    (or run uninstall.sh)
 EOF

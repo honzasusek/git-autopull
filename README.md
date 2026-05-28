@@ -1,8 +1,8 @@
-# git-auto-pull
+# git-autopull
 
 Keep chosen Git branches automatically fast-forwarded to their remotes, on a timer, in the background.
 
-`git-auto-pull` installs as a custom `git` subcommand and runs a small per-user **launchd** daemon that periodically fetches and **fast-forwards** the branches you register. It only ever applies fast-forward updates, so your local work is never overwritten — unreachable repos and diverged branches are simply logged and skipped.
+`git-autopull` installs as a custom `git` subcommand and runs a small per-user **launchd** daemon that periodically fetches and **fast-forwards** the branches you register. It only ever applies fast-forward updates, so your local work is never overwritten — unreachable repos and diverged branches are simply logged and skipped.
 
 > **Platform:** macOS only. The daemon is managed through launchd (`launchctl` + a `LaunchAgent` plist).
 
@@ -31,27 +31,27 @@ Keep chosen Git branches automatically fast-forwarded to their remotes, on a tim
 Paste this into **Terminal**:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/honzasusek/git-auto-pull/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/honzasusek/git-autopull/main/install.sh | bash
 ```
 
-It downloads the script to `~/.local/bin/git-auto-pull` and adds that directory to your `PATH`. **Open a new Terminal window afterwards** (or run `source ~/.zprofile`) so the `git auto-pull` command is found. Re-running the same line later upgrades to the newest version in place and restarts the daemon if it's running.
+It downloads the script to `~/.local/bin/git-autopull` and adds that directory to your `PATH`. **Open a new Terminal window afterwards** (or run `source ~/.zprofile`) so the `git autopull` command is found. Re-running the same line later upgrades to the newest version in place and restarts the daemon if it's running.
 
 ### Manual install
 
-Prefer not to pipe a script to `bash`? Download `git-auto-pull.sh` and install it yourself — it must land on your `PATH` named `git-auto-pull` (no extension) so Git resolves it as the `auto-pull` subcommand:
+Prefer not to pipe a script to `bash`? Download `git-autopull.sh` and install it yourself — it must land on your `PATH` named `git-autopull` (no extension) so Git resolves it as the `autopull` subcommand:
 
 ```sh
-install -m 0755 git-auto-pull.sh ~/.local/bin/git-auto-pull
+install -m 0755 git-autopull.sh ~/.local/bin/git-autopull
 ```
 
 Make sure that directory is on your `PATH` (e.g. add `export PATH="$HOME/.local/bin:$PATH"` to your shell profile).
 
 > **Important:** put the script in its final home *before* the first run. The daemon is launched from wherever the file lives at registration time, and launchd records that exact path.
 
-Verify it resolves (use a real subcommand — `git auto-pull --help` is intercepted by Git, which looks for a man page that doesn't exist):
+Verify it resolves (use a real subcommand — `git autopull --help` is intercepted by Git, which looks for a man page that doesn't exist):
 
 ```sh
-git auto-pull help
+git autopull help
 ```
 
 ---
@@ -62,13 +62,13 @@ From inside a Git repository:
 
 ```sh
 # Keep this repo's "main" branch fast-forwarded to its remote
-git auto-pull add main
+git autopull add main
 
 # See what's being pulled
-git auto-pull list
+git autopull list
 
 # Pull every 10 minutes instead of the default 30
-git auto-pull interval 10
+git autopull interval 10
 ```
 
 That's it. The daemon starts automatically on the first `add` and keeps running across reboots (it's a `RunAtLoad` + `KeepAlive` LaunchAgent).
@@ -78,30 +78,30 @@ That's it. The daemon starts automatically on the first `add` and keeps running 
 ## Usage
 
 ```
-git auto-pull add <branch>      Register the CURRENT repo + <branch>, start the daemon
-git auto-pull remove <branch>   Unregister the CURRENT repo + <branch>
-git auto-pull interval [mins]   Show, or set, the global pull interval in minutes (default 30)
-git auto-pull verbose [on|off]  Show, or toggle, verbose daemon logging (default off)
-git auto-pull list              Show the interval and everything being pulled
-git auto-pull start             Load the daemon (resume pulling on the timer)
-git auto-pull stop              Unload the daemon (pause all pulling)
-git auto-pull status            Report whether the daemon is running
-git auto-pull log [n]           Show the last n daemon log lines (default 50)
-git auto-pull uninstall [-y]    Stop the daemon, remove the plist, clear config
+git autopull add <branch>      Register the CURRENT repo + <branch>, start the daemon
+git autopull remove <branch>   Unregister the CURRENT repo + <branch>
+git autopull interval [mins]   Show, or set, the global pull interval in minutes (default 30)
+git autopull verbose [on|off]  Show, or toggle, verbose daemon logging (default off)
+git autopull list              Show the interval and everything being pulled
+git autopull start             Load the daemon (resume pulling on the timer)
+git autopull stop              Unload the daemon (pause all pulling)
+git autopull status            Report whether the daemon is running
+git autopull log [n]           Show the last n daemon log lines (default 50)
+git autopull uninstall [-y]    Stop the daemon, remove the plist, clear config
 ```
 
-The first argument is always a subcommand verb, so branch names are unrestricted — even a branch literally named `remove` works via `git auto-pull add remove`.
+The first argument is always a subcommand verb, so branch names are unrestricted — even a branch literally named `remove` works via `git autopull add remove`.
 
 ### Examples
 
 ```sh
-git auto-pull add develop          # also sync develop in this repo
-git auto-pull remove develop       # stop syncing it
-git auto-pull interval             # -> "interval: 30 min"
-git auto-pull verbose on           # log every cycle and pull attempt
-git auto-pull log 100              # tail the last 100 log lines
-git auto-pull stop                 # pause without losing your config
-git auto-pull start                # resume
+git autopull add develop          # also sync develop in this repo
+git autopull remove develop       # stop syncing it
+git autopull interval             # -> "interval: 30 min"
+git autopull verbose on           # log every cycle and pull attempt
+git autopull log 100              # tail the last 100 log lines
+git autopull stop                 # pause without losing your config
+git autopull start                # resume
 ```
 
 ---
@@ -121,14 +121,14 @@ The daemon never exits on failure: an unreachable repo, a failed fetch, or a non
 
 ## Configuration & files
 
-Everything lives under `~/.config/git-auto-pull/`:
+Everything lives under `~/.config/git-autopull/`:
 
 | File          | Purpose                                                        |
 |---------------|----------------------------------------------------------------|
 | `repos`       | Tab-separated lines: `<repo-toplevel>\t<branch>`               |
 | `interval`    | A single integer — the pull interval in minutes (default `30`) |
 | `verbose`     | `1` = verbose logging, `0` = quiet (default)                   |
-| `auto-pull.log` | Daemon log (changes, warnings, errors; plus cycles when verbose) |
+| `autopull.log` | Daemon log (changes, warnings, errors; plus cycles when verbose) |
 
 The launchd job is installed at:
 
@@ -151,16 +151,16 @@ With `verbose on`, you'll additionally see each cycle, every pull attempt, and "
 ## Uninstall
 
 ```sh
-git auto-pull uninstall        # prompts for confirmation
-git auto-pull uninstall -y     # skip the prompt
+git autopull uninstall        # prompts for confirmation
+git autopull uninstall -y     # skip the prompt
 ```
 
-This stops the daemon, removes the LaunchAgent plist, and deletes the config directory (config + log). The `git-auto-pull` executable itself is left in place — delete it from your `PATH` manually if you want it gone.
+This stops the daemon, removes the LaunchAgent plist, and deletes the config directory (config + log). The `git-autopull` executable itself is left in place — delete it from your `PATH` manually if you want it gone.
 
 To remove **everything** in one go — including the executable and the `PATH` line the installer added — run the uninstaller:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/honzasusek/git-auto-pull/main/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/honzasusek/git-autopull/main/uninstall.sh | bash
 ```
 
 ---

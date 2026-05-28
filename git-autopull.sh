@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
 #
-# git-auto-pull — keep specific branches in specific repos fast-forwarded to
+# git-autopull — keep specific branches in specific repos fast-forwarded to
 # their remote, on a timer, via a per-user launchd daemon.
 #
 # Usage:
-#   git auto-pull add <branch>      Register the CURRENT repo + <branch>, start daemon
-#   git auto-pull remove <branch>   Unregister the CURRENT repo + <branch>
-#   git auto-pull interval <mins>   Set the global pull interval in minutes (default 30)
-#   git auto-pull interval          Show the current interval
-#   git auto-pull verbose [on|off]  Toggle (or show) verbose daemon logging; OFF
+#   git autopull add <branch>      Register the CURRENT repo + <branch>, start daemon
+#   git autopull remove <branch>   Unregister the CURRENT repo + <branch>
+#   git autopull interval <mins>   Set the global pull interval in minutes (default 30)
+#   git autopull interval          Show the current interval
+#   git autopull verbose [on|off]  Toggle (or show) verbose daemon logging; OFF
 #                                   logs only changes/warnings/errors, ON also
 #                                   logs each cycle + every pull attempt
-#   git auto-pull list              Show the interval and everything being pulled
-#   git auto-pull start             Load the daemon (resume pulling on the timer)
-#   git auto-pull stop              Unload the daemon (pause all pulling)
-#   git auto-pull status            Report whether the daemon is running
-#   git auto-pull log [n]           Show the last n daemon log lines (default 50)
-#   git auto-pull uninstall         Stop the daemon, remove the plist, clear config
+#   git autopull list              Show the interval and everything being pulled
+#   git autopull start             Load the daemon (resume pulling on the timer)
+#   git autopull stop              Unload the daemon (pause all pulling)
+#   git autopull status            Report whether the daemon is running
+#   git autopull log [n]           Show the last n daemon log lines (default 50)
+#   git autopull uninstall         Stop the daemon, remove the plist, clear config
 #
-# Install: copy this file onto your PATH named `git-auto-pull` (NO extension) so
-# git resolves it as the `auto-pull` subcommand, e.g.
+# Install: copy this file onto your PATH named `git-autopull` (NO extension) so
+# git resolves it as the `autopull` subcommand, e.g.
 #
-#   install -m 0755 git-auto-pull.sh ~/.local/bin/git-auto-pull
+#   install -m 0755 git-autopull.sh ~/.local/bin/git-autopull
 #
 # (and make sure that directory is on your PATH). Put it in its final home
 # BEFORE first run: the daemon is launched from wherever this file lives, so the
@@ -33,17 +33,17 @@
 #     logged and skipped, then it carries on with the rest of the list.
 #   * The first argument is always a subcommand verb (add/remove/interval/...),
 #     so branch names are unrestricted — even a branch named "remove" is fine
-#     via `git auto-pull add remove`.
+#     via `git autopull add remove`.
 
 set -uo pipefail   # deliberately NOT -e: the daemon must outlive individual failures.
 
 # ---- paths & constants ------------------------------------------------------
 
-CONFIG_DIR="$HOME/.config/git-auto-pull"
+CONFIG_DIR="$HOME/.config/git-autopull"
 REPOS_FILE="$CONFIG_DIR/repos"          # tab-separated lines: <repo-toplevel>\t<branch>
 INTERVAL_FILE="$CONFIG_DIR/interval"    # a single integer: minutes
 VERBOSE_FILE="$CONFIG_DIR/verbose"      # "1" = verbose daemon logging, "0" = quiet (default)
-LOG_FILE="$CONFIG_DIR/auto-pull.log"
+LOG_FILE="$CONFIG_DIR/autopull.log"
 
 PLIST_LABEL="com.gitautopull.daemon"
 PLIST_PATH="$HOME/Library/LaunchAgents/$PLIST_LABEL.plist"
@@ -59,7 +59,7 @@ log() {
     printf '%s  %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >>"$LOG_FILE"
 }
 
-# Verbose logging is opt-in via `git auto-pull verbose on`. The setting lives in
+# Verbose logging is opt-in via `git autopull verbose on`. The setting lives in
 # $VERBOSE_FILE and is re-read on every call below, so the daemon honors a change
 # on its next cycle without needing a restart. When OFF, the daemon logs only
 # meaningful events — real fast-forwards (OK a..b), warnings, and errors. When ON
@@ -78,7 +78,7 @@ vlog() {
 }
 
 die() {
-    printf 'git auto-pull: %s\n' "$*" >&2
+    printf 'git autopull: %s\n' "$*" >&2
     exit 1
 }
 
@@ -235,7 +235,7 @@ daemon_loop() {
 
 cmd_add() {
     local branch="$1" repo entry
-    [ -n "$branch" ] || die "usage: git auto-pull add <branch>"
+    [ -n "$branch" ] || die "usage: git autopull add <branch>"
     ensure_config
     repo="$(repo_toplevel)"
 
@@ -255,7 +255,7 @@ cmd_add() {
 
 cmd_remove() {
     local branch="$1" repo entry tmp
-    [ -n "$branch" ] || die "usage: git auto-pull remove <branch>"
+    [ -n "$branch" ] || die "usage: git autopull remove <branch>"
     ensure_config
     repo="$(repo_toplevel)"
     entry="$repo"$'\t'"$branch"
@@ -303,7 +303,7 @@ cmd_verbose() {
                             printf 'verbose logging on (takes effect on the daemon next cycle)\n' ;;
         off|OFF|0|false|no) printf '0\n' >"$VERBOSE_FILE"
                             printf 'verbose logging off (takes effect on the daemon next cycle)\n' ;;
-        *)                  die "usage: git auto-pull verbose [on|off]" ;;
+        *)                  die "usage: git autopull verbose [on|off]" ;;
     esac
 }
 
@@ -330,7 +330,7 @@ cmd_start() {
     fi
     load_daemon
     printf 'daemon started\n'
-    [ -s "$REPOS_FILE" ] || printf 'note: nothing is being pulled yet — add a branch with "git auto-pull add <branch>"\n' >&2
+    [ -s "$REPOS_FILE" ] || printf 'note: nothing is being pulled yet — add a branch with "git autopull add <branch>"\n' >&2
 }
 
 cmd_stop() {
@@ -372,23 +372,23 @@ cmd_uninstall() {
     rm -f "$PLIST_PATH"
     rm -rf "$CONFIG_DIR"
     printf 'uninstalled: daemon stopped, plist and config removed\n'
-    printf 'note: the git-auto-pull executable was left in place; delete it from your PATH manually if you want it gone.\n'
+    printf 'note: the git-autopull executable was left in place; delete it from your PATH manually if you want it gone.\n'
 }
 
 usage() {
     cat <<'EOF'
-git auto-pull — fast-forward chosen branches on a timer (launchd).
+git autopull — fast-forward chosen branches on a timer (launchd).
 
-  git auto-pull add <branch>      pull this repo's <branch>; start the daemon
-  git auto-pull remove <branch>   stop pulling this repo's <branch>
-  git auto-pull interval [mins]   show or set the global interval (default 30)
-  git auto-pull verbose [on|off]  show or toggle verbose daemon logging (default off)
-  git auto-pull list              show interval + everything being pulled
-  git auto-pull start             load the daemon (resume pulling)
-  git auto-pull stop              unload the daemon (pause pulling)
-  git auto-pull status            is the daemon running?
-  git auto-pull log [n]           show last n daemon log lines (default 50)
-  git auto-pull uninstall [-y]    stop daemon, remove plist, clear config
+  git autopull add <branch>      pull this repo's <branch>; start the daemon
+  git autopull remove <branch>   stop pulling this repo's <branch>
+  git autopull interval [mins]   show or set the global interval (default 30)
+  git autopull verbose [on|off]  show or toggle verbose daemon logging (default off)
+  git autopull list              show interval + everything being pulled
+  git autopull start             load the daemon (resume pulling)
+  git autopull stop              unload the daemon (pause pulling)
+  git autopull status            is the daemon running?
+  git autopull log [n]           show last n daemon log lines (default 50)
+  git autopull uninstall [-y]    stop daemon, remove plist, clear config
 EOF
 }
 
@@ -407,5 +407,5 @@ case "${1:-}" in
     log)       cmd_log "${2:-}" ;;
     uninstall) cmd_uninstall "${2:-}" ;;
     __daemon)  daemon_loop ;;
-    *)         die "unknown command '$1' (try: git auto-pull --help)" ;;
+    *)         die "unknown command '$1' (try: git autopull --help)" ;;
 esac
