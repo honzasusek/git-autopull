@@ -49,6 +49,7 @@ PLIST_LABEL="com.gitautopull.daemon"
 PLIST_PATH="$HOME/Library/LaunchAgents/$PLIST_LABEL.plist"
 
 DEFAULT_INTERVAL=30
+LOG_MAX_LINES=1000
 
 # Absolute path to this very script, so the daemon launches the same file.
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/$(basename "${BASH_SOURCE[0]}")"
@@ -57,6 +58,24 @@ SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/$(basename "
 
 log() {
     printf '%s  %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >>"$LOG_FILE"
+    trim_log
+}
+
+# Keep $LOG_FILE bounded so the daemon can run indefinitely. We let it overshoot
+# the cap by 20% before rewriting, so a chatty cycle doesn't trigger a full
+# rewrite on every line. Truncate-in-place (cat > file) rather than mv, so the
+# fd launchd holds via StandardOutPath/StandardErrorPath keeps pointing at the
+# live file.
+trim_log() {
+    [ -f "$LOG_FILE" ] || return 0
+    local lines tmp
+    lines="$(wc -l <"$LOG_FILE" 2>/dev/null)" || return 0
+    [ "${lines:-0}" -gt "$(( LOG_MAX_LINES * 12 / 10 ))" ] || return 0
+    tmp="$(mktemp "${LOG_FILE}.XXXXXX")" || return 0
+    if tail -n "$LOG_MAX_LINES" "$LOG_FILE" >"$tmp" 2>/dev/null; then
+        cat "$tmp" >"$LOG_FILE"
+    fi
+    rm -f "$tmp"
 }
 
 # Verbose logging is opt-in via `git autopull verbose on`. The setting lives in
