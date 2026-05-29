@@ -206,13 +206,41 @@ pull_one() {
     head="$(git -C "$repo" symbolic-ref --quiet --short HEAD 2>/dev/null)"
 
     if [ "$head" = "$branch" ]; then
-        # Branch is checked out: fetch, then fast-forward the working tree.
+        # Branch is checked out: stash any local changes so the fast-forward
+        # can apply cleanly, then restore them after. If the stash refuses to
+        # replay on the new tip, roll back to $before so the working tree ends
+        # up exactly as it started.
+        local stashed=0
+        if ! git -C "$repo" diff --quiet 2>/dev/null \
+           || ! git -C "$repo" diff --cached --quiet 2>/dev/null; then
+            if git -C "$repo" stash push --quiet --message "git-autopull: pre-pull" 2>>"$LOG_FILE"; then
+                stashed=1
+                vlog "PULL  $repo [$branch] stashed local changes"
+            else
+                log "WARN  $repo [$branch] could not stash local changes, skipped"
+                return 0
+            fi
+        fi
+
         if ! git -C "$repo" fetch --quiet "$remote" "$branch" 2>>"$LOG_FILE"; then
             log "ERROR $repo [$branch] fetch from $remote failed"
+            [ "$stashed" = 1 ] && git -C "$repo" stash pop --quiet 2>>"$LOG_FILE"
             return 0
         fi
         if ! git -C "$repo" merge --ff-only --quiet FETCH_HEAD 2>>"$LOG_FILE"; then
-            log "WARN  $repo [$branch] checked out but not fast-forwardable (dirty/diverged), skipped"
+            log "WARN  $repo [$branch] checked out but diverged (not fast-forwardable), skipped"
+            [ "$stashed" = 1 ] && git -C "$repo" stash pop --quiet 2>>"$LOG_FILE"
+            return 0
+        fi
+
+        if [ "$stashed" = 1 ] && ! git -C "$repo" stash pop --quiet 2>>"$LOG_FILE"; then
+            # Stash didn't replay on the new tip. Reset back to $before and
+            # re-apply the stash there — guaranteed to apply since the stash
+            # was made from $before.
+            log "WARN  $repo [$branch] local changes conflict with new tip; rolled back to ${before:0:7}"
+            git -C "$repo" reset --hard --quiet "$before" 2>>"$LOG_FILE"
+            git -C "$repo" stash pop --quiet 2>>"$LOG_FILE" \
+                || log "ERROR $repo [$branch] failed to restore stash after rollback; see 'git stash list'"
             return 0
         fi
     else
